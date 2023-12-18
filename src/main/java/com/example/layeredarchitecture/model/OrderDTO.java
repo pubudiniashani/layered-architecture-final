@@ -23,6 +23,13 @@ public class OrderDTO  {
         this.orderTotal = orderTotal;
     }
 
+    public OrderDTO(String orderId, LocalDate orderDate, String customerId, String text) {
+        this.orderId = orderId;
+        this.orderDate = orderDate;
+        this.customerId = customerId;
+        this.customerName = text;
+    }
+
     public String getOrderId() {
         return orderId;
     }

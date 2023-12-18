@@ -2,9 +2,11 @@ package com.example.layeredarchitecture.dao;
 
 import com.example.layeredarchitecture.db.DBConnection;
 import com.example.layeredarchitecture.model.ItemDTO;
+import com.example.layeredarchitecture.model.OrderDetailDTO;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.List;
 
 public class ItemDAOImpl implements  ItemDAO {
 
@@ -16,7 +18,7 @@ public class ItemDAOImpl implements  ItemDAO {
 
         ArrayList<ItemDTO> getAllItem = new ArrayList<>();
 
-        while (rst.next()){
+        while (rst.next()) {
             ItemDTO itemDTO = new ItemDTO(rst.getString("code"),
                     rst.getString("description"),
                     rst.getBigDecimal("unitPrice"),
@@ -39,7 +41,7 @@ public class ItemDAOImpl implements  ItemDAO {
         pstm.setBigDecimal(3, dto.getUnitPrice());
         pstm.setInt(4, dto.getQtyOnHand());
 
-      return pstm.executeUpdate() > 0;
+        return pstm.executeUpdate() > 0;
     }
 
     @Override
@@ -47,7 +49,7 @@ public class ItemDAOImpl implements  ItemDAO {
         Connection connection = DBConnection.getDbConnection().getConnection();
         PreparedStatement pstm = connection.prepareStatement("UPDATE Item SET description=?, unitPrice=?, qtyOnHand=? WHERE code=?");
         pstm.setString(1, dto.getDescription());
-        pstm.setBigDecimal(2,dto.getUnitPrice() );
+        pstm.setBigDecimal(2, dto.getUnitPrice());
         pstm.setInt(3, dto.getQtyOnHand());
         pstm.setString(4, dto.getCode());
         pstm.executeUpdate();
@@ -61,6 +63,7 @@ public class ItemDAOImpl implements  ItemDAO {
         pstm.setString(1, code);
         pstm.executeUpdate();
     }
+
     @Override
     public boolean existItem(String code) throws SQLException, ClassNotFoundException {
         Connection connection = DBConnection.getDbConnection().getConnection();
@@ -97,23 +100,23 @@ public class ItemDAOImpl implements  ItemDAO {
 
     @Override
     public ArrayList<ItemDTO> loadAllItemIds() throws SQLException, ClassNotFoundException {
-         Connection connection = DBConnection.getDbConnection().getConnection();
-            Statement stm = connection.createStatement();
-            ResultSet rst = stm.executeQuery("SELECT * FROM Item");
+        Connection connection = DBConnection.getDbConnection().getConnection();
+        Statement stm = connection.createStatement();
+        ResultSet rst = stm.executeQuery("SELECT * FROM Item");
 
-            ArrayList<ItemDTO> getAllItemIds = new ArrayList<>();
+        ArrayList<ItemDTO> getAllItemIds = new ArrayList<>();
 
-            while(rst.next()){
-                ItemDTO itemDTO = new ItemDTO(
-                        rst.getString("code"), rst.getString("description"),
-                        rst.getBigDecimal("unitPrice"), rst.getInt("qtyOnHand")
+        while (rst.next()) {
+            ItemDTO itemDTO = new ItemDTO(
+                    rst.getString("code"), rst.getString("description"),
+                    rst.getBigDecimal("unitPrice"), rst.getInt("qtyOnHand")
 
-                );
+            );
 
-                getAllItemIds.add(itemDTO);
-            }
+            getAllItemIds.add(itemDTO);
+        }
 
-            return getAllItemIds;
+        return getAllItemIds;
     }
 
     @Override
@@ -126,14 +129,37 @@ public class ItemDAOImpl implements  ItemDAO {
         rst.next();
 
         ItemDTO item = new ItemDTO(
-                newItemCode + "" , rst.getString("description") ,
-                rst.getBigDecimal("unitPrice") ,
+                newItemCode + "", rst.getString("description"),
+                rst.getBigDecimal("unitPrice"),
                 rst.getInt("qtyOnHand")
         );
 
-        return  item;
+        return item;
 
     }
 
+    @Override
+    public boolean updateItemQuantity(List<OrderDetailDTO> orderDetail) throws SQLException, ClassNotFoundException {
 
+        int count = 0;
+
+        for (OrderDetailDTO detail : orderDetail) {
+            ItemDTO item = findItem(detail.getItemCode());
+            item.setQtyOnHand(item.getQtyOnHand() - detail.getQty());
+
+            Connection connection = DBConnection.getDbConnection().getConnection();
+
+            PreparedStatement pstm = connection.prepareStatement("UPDATE Item SET description=?, unitPrice=?, qtyOnHand=? WHERE code=?");
+            pstm.setString(1, item.getDescription());
+            pstm.setBigDecimal(2, item.getUnitPrice());
+            pstm.setInt(3, item.getQtyOnHand());
+            pstm.setString(4, item.getCode());
+
+            pstm.executeUpdate();
+            count++;
+
+        }
+        return count == orderDetail.size();
+
+    }
 }
