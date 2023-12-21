@@ -1,8 +1,7 @@
 package com.example.layeredarchitecture.controller;
 
-import com.example.layeredarchitecture.dao.ItemDAO;
-import com.example.layeredarchitecture.dao.ItemDAOImpl;
-import com.example.layeredarchitecture.db.DBConnection;
+import com.example.layeredarchitecture.dao.custom.ItemDAO;
+import com.example.layeredarchitecture.dao.custom.impl.ItemDAOImpl;
 import com.example.layeredarchitecture.model.ItemDTO;
 import com.example.layeredarchitecture.view.tdm.ItemTM;
 import com.jfoenix.controls.JFXButton;
@@ -74,7 +73,7 @@ public class ManageItemsFormController {
         try {
             /*Get all items*/
 
-            ArrayList<ItemDTO> allItem = itemDAO.getAllItems();
+            ArrayList<ItemDTO> allItem = itemDAO.getAll();
 
             for (ItemDTO i: allItem) {
                 tblItems.getItems().add(new ItemTM(i.getCode(),i.getDescription(),
@@ -137,7 +136,7 @@ public class ManageItemsFormController {
                 new Alert(Alert.AlertType.ERROR, "There is no such item associated with the id " + code).show();
             }
 
-            itemDAO.deleteItem(code);
+            itemDAO.delete(code);
 
             tblItems.getItems().remove(tblItems.getSelectionModel().getSelectedItem());
             tblItems.getSelectionModel().clearSelection();
@@ -180,7 +179,7 @@ public class ManageItemsFormController {
 
                 ItemDTO itemDTO = new ItemDTO(code,description,unitPrice,qtyOnHand);
 
-               boolean isSaved = itemDAO.saveItem(itemDTO);
+               boolean isSaved = itemDAO.save(itemDTO);
 
                 if(isSaved) {
                     tblItems.getItems().add(new ItemTM(code, description, unitPrice, qtyOnHand));
@@ -200,7 +199,7 @@ public class ManageItemsFormController {
 
                 ItemDTO itemDTO = new ItemDTO(code,description,unitPrice,qtyOnHand);
 
-                itemDAO.updateItem(itemDTO);
+                itemDAO.update(itemDTO);
 
 
                   ItemTM selectedItem = tblItems.getSelectionModel().getSelectedItem();
@@ -227,7 +226,7 @@ public class ManageItemsFormController {
         return pstm.executeQuery().next(); */
 
 
-        boolean isExist =  itemDAO.existItem(code);
+        boolean isExist =  itemDAO.exists(code);
 
       return  isExist;
     }

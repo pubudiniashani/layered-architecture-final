@@ -1,6 +1,13 @@
 package com.example.layeredarchitecture.controller;
 
-import com.example.layeredarchitecture.dao.*;
+import com.example.layeredarchitecture.dao.custom.CustomerDAO;
+import com.example.layeredarchitecture.dao.custom.ItemDAO;
+import com.example.layeredarchitecture.dao.custom.OrderDAO;
+import com.example.layeredarchitecture.dao.custom.OrderDetailDAO;
+import com.example.layeredarchitecture.dao.custom.impl.CustomerDAOImpl;
+import com.example.layeredarchitecture.dao.custom.impl.ItemDAOImpl;
+import com.example.layeredarchitecture.dao.custom.impl.OrderDAOImpl;
+import com.example.layeredarchitecture.dao.custom.impl.OrderDetailDAOImpl;
 import com.example.layeredarchitecture.db.DBConnection;
 import com.example.layeredarchitecture.model.CustomerDTO;
 import com.example.layeredarchitecture.model.ItemDTO;
@@ -55,6 +62,8 @@ public class PlaceOrderFormController {
     private CustomerDAO customerDAO = new CustomerDAOImpl();
     private ItemDAO itemDAO = new ItemDAOImpl();
     private OrderDAO orderDAO = new OrderDAOImpl();
+
+    private OrderDetailDAO orderDetailDAO = new OrderDetailDAOImpl();
 
     public void initialize() throws SQLException, ClassNotFoundException {
 
@@ -115,7 +124,7 @@ public class PlaceOrderFormController {
 
                         CustomerDTO customerDTO = new CustomerDTO(newValue + "", rst.getString("name"), rst.getString("address")); */
 
-                      CustomerDTO customerDTO =  customerDAO.searchCustomer(newValue);
+                      CustomerDTO customerDTO =  customerDAO.search(newValue);
 
                         txtCustomerName.setText(customerDTO.getName());
                     } catch (SQLException e) {
@@ -151,7 +160,7 @@ public class PlaceOrderFormController {
                     ItemDTO item = new ItemDTO(newItemCode + "", rst.getString("description"), rst.getBigDecimal("unitPrice"), rst.getInt("qtyOnHand")); */
 
 
-                  ItemDTO item = itemDAO.searchItem(newItemCode);
+                  ItemDTO item = itemDAO.search(newItemCode);
 
                     txtDescription.setText(item.getDescription());
                     txtUnitPrice.setText(item.getUnitPrice().setScale(2).toString());
@@ -202,7 +211,7 @@ public class PlaceOrderFormController {
         return pstm.executeQuery().next();*/
 
 
-        return itemDAO.existItem(code);
+        return itemDAO.exists(code);
     }
 
     boolean existCustomer(String id) throws SQLException, ClassNotFoundException {
@@ -212,7 +221,7 @@ public class PlaceOrderFormController {
         return pstm.executeQuery().next();*/
 
         CustomerDAO customerDAO = new CustomerDAOImpl();
-        return customerDAO.existsCustomer(id);
+        return customerDAO.exists(id);
     }
 
     public String generateNewOrderId() {
@@ -224,7 +233,7 @@ public class PlaceOrderFormController {
           //  return rst.next() ? String.format("OID-%03d", (Integer.parseInt(rst.getString("oid").replace("OID-", "")) + 1)) : "OID-001";
 
        OrderDAO orderDAO = new OrderDAOImpl();
-       String id = orderDAO.generateNewOrderId();
+       String id = orderDAO.generateNewId();
        return id;
 
 
@@ -364,28 +373,66 @@ public class PlaceOrderFormController {
 
  public boolean saveOrder(String orderId, LocalDate orderDate, String customerId, List<OrderDetailDTO> orderDetails) {
         /*Transaction*/
-       // Connection connection = null;
+       Connection connection = null;
 
-     if(orderDAO.checkOrderExist(orderId)){
+     try {
+         connection = DBConnection.getDbConnection().getConnection();
+         connection.setAutoCommit(false);
+
+         OrderDTO orderDTO = new OrderDTO(orderId,orderDate,customerId,txtCustomerName.getText());
+         boolean orderSaved = orderDAO.save(orderDTO);
+
+         if(!orderSaved){
+             connection.rollback();
+             connection.setAutoCommit(true);
+             return false;
+         }
+
+         boolean orderDetailSave = orderDetailDAO.saveOrderDetails(orderDetails ,orderId);
+         if(!orderDetailSave){
+             connection.rollback();
+             connection.setAutoCommit(true);
+             return false;
+         }
+
+         boolean updateItem  = itemDAO.updateItemQuantity(orderDetails);
+         if(!updateItem){
+             connection.rollback();
+             connection.setAutoCommit(true);
+             return false;
+         }
+
+         connection.commit();
+         connection.setAutoCommit(true);
+         return true;
+
+     } catch (SQLException e) {
+         throw new RuntimeException(e);
+     } catch (ClassNotFoundException e) {
+         throw new RuntimeException(e);
+     }
+
+    /* if(orderDAO.checkOrderExist(orderId)){
          System.out.println(orderDate);
 
          OrderDTO orderDTO = new OrderDTO(orderId,orderDate,customerId,txtCustomerName.getText());
 
-         boolean isSave = orderDAO.saveOrder(orderDTO, orderDetails);
+         boolean isSave = false;
+         try {
+             isSave = orderDAO.saveOrder(orderId,orderDate,customerId,orderDetails);
+         } catch (SQLException e) {
+             throw new RuntimeException(e);
+         } catch (ClassNotFoundException e) {
+             throw new RuntimeException(e);
+         }
          if (isSave) {
              new Alert(Alert.AlertType.CONFIRMATION, "Order saved Successfully");
-             return true;
+             return false;
          }
 
      }
-     return false;
+     return true;*/
 }
-
-
-
-
-
-
 
 
 /*            connection = DBConnection.getDbConnection().getConnection();
